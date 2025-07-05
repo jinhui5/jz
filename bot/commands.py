@@ -205,6 +205,12 @@ def format_records(records, currency, transaction_type):
     beijing_tz = pytz.timezone("Asia/Shanghai")  # 设置北京时间时区
     for record in records:
         amount, transaction_date = record
+        
+        # 如果 transaction_date 是 datetime.date 类型，则将其转换为 datetime.datetime
+        if isinstance(transaction_date, datetime.date) and not isinstance(transaction_date, datetime.datetime):
+            # 将日期转换为 datetime 类型，默认时间为 00:00:00
+            transaction_date = datetime.combine(transaction_date, datetime.min.time())
+
         # 转换时间为北京时间
         transaction_date = transaction_date.astimezone(beijing_tz)
         # 格式化时间为"小时:分钟"
