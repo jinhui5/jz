@@ -8,11 +8,11 @@ async def set_operator(update: Update, context: CallbackContext) -> None:
     user_id = update.message.from_user.id
     username = update.message.from_user.username
 
-    # 使用 await 获取成员信息，确保是异步操作
-    member = await update.message.chat.get_member(user_id)
+    # 使用 await 获取群管理员列表
+    admins = await update.message.chat.get_chat_administrators()
 
     # 检查用户是否是群主或管理员
-    if member.status not in ['administrator', 'creator']:
+    if not any(admin.user.id == user_id for admin in admins):
         await update.message.reply_text("只有群主或管理员可以设置操作人！")
         return
 
