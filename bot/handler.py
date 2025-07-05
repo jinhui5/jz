@@ -1,5 +1,5 @@
 from telegram.ext import CommandHandler, MessageHandler, filters
-from .commands import set_operator, remove_operator, show_operators, show_exchange_rate, set_exchange_rate, deposit_rmb, spend_rmb, deposit_usdt
+from .commands import set_operator, remove_operator, show_operators, show_exchange_rate, set_exchange_rate, deposit_rmb, spend_rmb, deposit_usdt, spend_usdt
 
 def setup_handlers(application):
     # 注册 /set_operator 命令
@@ -25,6 +25,9 @@ def setup_handlers(application):
 
     # 注册 /deposit_usdt 命令 (+数字u)
     application.add_handler(MessageHandler(filters.TEXT & filters.Regex(r'^\+\d+\.?\d*u$'), deposit_usdt))
+
+    # 注册 /spend_usdt 命令 (-数字u)
+    application.add_handler(MessageHandler(filters.TEXT & filters.Regex(r'^\-\d+\.?\d*u$'), spend_usdt))
     
     # 注册 "设置操作人" 文本输入
     application.add_handler(MessageHandler(filters.TEXT & filters.Regex(r'设置操作人'), set_operator))
