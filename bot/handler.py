@@ -1,5 +1,5 @@
 from telegram.ext import CommandHandler, MessageHandler, filters
-from .commands import set_operator, remove_operator
+from .commands import set_operator, remove_operator, show_operators
 
 def setup_handlers(application):
     # 注册 /set_operator 命令
