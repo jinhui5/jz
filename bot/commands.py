@@ -228,3 +228,34 @@ async def deposit_rmb(update: Update, context: CallbackContext) -> None:
     await update.message.reply_text(f"成功入款 {amount} 人民币！")
 
     conn.close()
+
+# 支出人民币的异步函数
+async def spend_rmb(update: Update, context: CallbackContext) -> None:
+    # 获取用户输入的文本
+    text = update.message.text.strip()
+
+    # 确保输入格式是 -数字c
+    if not text.startswith('-') or not text.endswith('c'):
+        await update.message.reply_text("请输入有效的支出命令，例如: `-100c`。")
+        return
+
+    # 提取金额（去掉 '-' 和 'c'）
+    try:
+        amount = float(text[1:-1])  # 提取金额并转换为浮动类型
+    except ValueError:
+        await update.message.reply_text("请输入有效的金额，例如: `-100c`。")
+        return
+
+    # 将支出金额存入数据库（假设每个用户都有唯一的 ID）
+    user_id = update.message.from_user.id
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # 插入支出记录
+    cursor.execute("INSERT INTO expenses (user_id, amount) VALUES (%s, %s)", (user_id, amount))
+    conn.commit()
+
+    # 反馈给用户
+    await update.message.reply_text(f"成功支出 {amount} 人民币！")
+
+    conn.close()
