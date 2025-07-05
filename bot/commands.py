@@ -343,6 +343,7 @@ async def spend_usdt(update: Update, context: CallbackContext) -> None:
 # 获取并显示今日账单的异步函数
 async def show_daily_bill(update: Update, context: CallbackContext) -> None:
     user_id = update.message.from_user.id
+    group_id = update.message.chat.id  # 获取当前群组的ID
 
     # 设置时区为北京时间
     beijing_tz = timezone("Asia/Shanghai")
@@ -356,19 +357,47 @@ async def show_daily_bill(update: Update, context: CallbackContext) -> None:
     cursor = conn.cursor()
 
     # 获取今日 CNY 入款
-    cursor.execute("SELECT SUM(amount) FROM daily_bill WHERE currency = 'CNY' AND transaction_type = 'deposit' AND transaction_date = %s", (today,))
+    cursor.execute("""
+        SELECT SUM(amount) 
+        FROM daily_bill 
+        WHERE group_id = %s 
+        AND currency = 'CNY' 
+        AND transaction_type = 'deposit' 
+        AND transaction_date = %s
+        """, (group_id, today))
     cny_deposit = cursor.fetchone()[0] or 0
 
     # 获取今日 CNY 支出
-    cursor.execute("SELECT SUM(amount) FROM daily_bill WHERE currency = 'CNY' AND transaction_type = 'spend' AND transaction_date = %s", (today,))
+    cursor.execute("""
+        SELECT SUM(amount) 
+        FROM daily_bill 
+        WHERE group_id = %s 
+        AND currency = 'CNY' 
+        AND transaction_type = 'spend' 
+        AND transaction_date = %s
+        """, (group_id, today))
     cny_spend = cursor.fetchone()[0] or 0
 
     # 获取今日 USDT 入款
-    cursor.execute("SELECT SUM(amount) FROM daily_bill WHERE currency = 'USDT' AND transaction_type = 'deposit' AND transaction_date = %s", (today,))
+    cursor.execute("""
+        SELECT SUM(amount) 
+        FROM daily_bill 
+        WHERE group_id = %s 
+        AND currency = 'USDT' 
+        AND transaction_type = 'deposit' 
+        AND transaction_date = %s
+        """, (group_id, today))
     usdt_deposit = cursor.fetchone()[0] or 0
 
     # 获取今日 USDT 支出
-    cursor.execute("SELECT SUM(amount) FROM daily_bill WHERE currency = 'USDT' AND transaction_type = 'spend' AND transaction_date = %s", (today,))
+    cursor.execute("""
+        SELECT SUM(amount) 
+        FROM daily_bill 
+        WHERE group_id = %s 
+        AND currency = 'USDT' 
+        AND transaction_type = 'spend' 
+        AND transaction_date = %s
+        """, (group_id, today))
     usdt_spend = cursor.fetchone()[0] or 0
 
     # 计算总入款和支出
