@@ -7,6 +7,16 @@ async def set_operator(update: Update, context: CallbackContext) -> None:
     user_id = update.message.from_user.id
     username = update.message.from_user.username
 
+    # 获取用户输入的文本
+    text = update.message.text.strip()
+
+    # 检查用户输入是否包含目标用户名
+    if len(text.split()) < 2:
+        await update.message.reply_text("请提供要设置的操作人用户名，例如: `@username`。")
+        return
+
+    target_username = text.split()[1]  # 提取目标用户名
+
     # 使用 await 获取群管理员列表
     admins = await update.message.chat.get_administrators()
 
@@ -14,13 +24,6 @@ async def set_operator(update: Update, context: CallbackContext) -> None:
     if not any(admin.user.id == user_id for admin in admins):
         await update.message.reply_text("只有群主或管理员可以设置操作人！")
         return
-
-    # 检查用户输入是否提供目标用户名
-    if len(context.args) < 1:
-        await update.message.reply_text("请提供要设置的操作人用户名，例如: `@username`。")
-        return
-
-    target_username = context.args[0]  # 获取用户名
 
     # 获取用户 ID
     target_user_id = None
