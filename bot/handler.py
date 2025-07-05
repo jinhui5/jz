@@ -1,5 +1,5 @@
 from telegram.ext import CommandHandler, MessageHandler, filters
-from .commands import set_operator, remove_operator, show_operators, show_exchange_rate, set_exchange_rate, deposit_rmb, spend_rmb, deposit_usdt, spend_usdt, show_daily_bill
+from .commands import set_operator, remove_operator, show_operators, show_exchange_rate, set_exchange_rate, deposit_rmb, spend_rmb, deposit_usdt, spend_usdt, show_daily_bill, delete_daily_bill
 
 def setup_handlers(application):
     # 注册 /set_operator 命令
@@ -19,6 +19,9 @@ def setup_handlers(application):
 
     # 注册 /show_daily_bill 命令（显示账单）
     application.add_handler(CommandHandler("show_daily_bill", show_daily_bill))
+
+    # 注册 /delete_daily_bill 命令（删除账单）
+    application.add_handler(CommandHandler("delete_daily_bill", delete_daily_bill))
 
     # 注册 "入款人民币" 命令 (+数字c)
     application.add_handler(MessageHandler(filters.TEXT & filters.Regex(r'^\+\d+\.?\d*c$'), deposit_rmb))
@@ -50,3 +53,5 @@ def setup_handlers(application):
     # 注册 "显示账单" 文本输入
     application.add_handler(MessageHandler(filters.TEXT & filters.Regex(r'显示账单'), show_daily_bill))
 
+    # 注册 "删除账单" 文本输入
+    application.add_handler(MessageHandler(filters.TEXT & filters.Regex(r'删除账单'), delete_daily_bill))
