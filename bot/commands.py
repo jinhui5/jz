@@ -390,6 +390,10 @@ async def show_daily_bill(update: Update, context: CallbackContext) -> None:
     bill_message += f"USDT 支出: `-{total_usdt_spend:.2f} USDT`\n"
     bill_message += f"USDT 总余额: `{total_usdt_deposit - total_usdt_spend:.2f} USDT`\n"
 
+    # 添加自定义文字和链接
+    bill_message += "\n\n*本机器人完全免费使用！*\n"
+    bill_message += " [Ant科技官方频道](https://t.me/antkeji)\n"
+
     # 发送账单信息
     await update.message.reply_text(bill_message, parse_mode="Markdown")
 
