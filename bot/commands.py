@@ -1,7 +1,6 @@
 from telegram import Update
-from telegram.constants import ParseMode
 from telegram.ext import CallbackContext
-from telegram import ParseMode
+from telegram.constants import ParseMode  # 正确的导入方式
 from .db import get_db_connection
 
 # 设置操作员的异步函数
