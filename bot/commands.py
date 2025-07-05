@@ -196,6 +196,7 @@ def get_recent_records(user_id, currency, transaction_type):
 
     return records
 
+
 # 格式化交易记录
 def format_records(records, currency, transaction_type):
     if not records:
@@ -206,11 +207,19 @@ def format_records(records, currency, transaction_type):
     for record in records:
         amount, transaction_date = record
         
+        # 打印日志查看 transaction_date 的类型和内容
+        print(f"交易日期类型: {type(transaction_date)}, 交易日期: {transaction_date}")
+        
         # 如果 transaction_date 是 datetime.date 类型，则将其转换为 datetime.datetime
         if isinstance(transaction_date, datetime.date) and not isinstance(transaction_date, datetime.datetime):
             # 将日期转换为 datetime 类型，默认时间为 00:00:00
             transaction_date = datetime.combine(transaction_date, datetime.min.time())
-
+        
+        # 进一步检查如果 transaction_date 不是 datetime 类型，抛出一个错误
+        if not isinstance(transaction_date, datetime):
+            print(f"无效的 transaction_date 类型: {type(transaction_date)}")
+            continue  # 跳过无效记录
+        
         # 转换时间为北京时间
         transaction_date = transaction_date.astimezone(beijing_tz)
         # 格式化时间为"小时:分钟"
