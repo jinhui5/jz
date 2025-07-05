@@ -1,3 +1,4 @@
+import requests
 from telegram import Update
 from telegram.ext import CallbackContext
 from .db import get_db_connection
@@ -135,3 +136,28 @@ async def show_operators(update: Update, context: CallbackContext) -> None:
     await update.message.reply_text(f"当前操作人列表:\n{operators_list}")
 
     conn.close()
+
+# 显示实时汇率的异步函数
+async def show_exchange_rate(update: Update, context: CallbackContext) -> None:
+    # 使用您的 API 密钥
+    api_key = "ed5e4b37097e49911d76f6a8"  # 这里替换为您自己的 API 密钥
+    url = f"https://v6.exchangerate-api.com/v6/{api_key}/latest/USDT"
+    
+    # 获取汇率数据
+    try:
+        response = requests.get(url)
+        data = response.json()
+        
+        if response.status_code != 200 or data["result"] != "success":
+            await update.message.reply_text("无法获取汇率数据，请稍后再试。")
+            return
+
+        # 获取 USDT 对 CNY 的汇率
+        exchange_rate = data["conversion_rates"]["CNY"]
+
+        # 返回汇率结果
+        await update.message.reply_text(f"当前 USDT 对 CNY 的实时汇率是: {exchange_rate} CNY")
+    
+    except Exception as e:
+        await update.message.reply_text("获取汇率时发生错误，请稍后再试。")
+        print(f"Error: {e}")
