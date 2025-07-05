@@ -102,3 +102,36 @@ async def remove_operator(update: Update, context: CallbackContext) -> None:
     await update.message.reply_text(f"已删除 {target_username} 作为操作人！")
 
     conn.close()
+
+# 显示操作人的异步函数
+async def show_operators(update: Update, context: CallbackContext) -> None:
+    user_id = update.message.from_user.id
+
+    # 使用 await 获取群管理员列表
+    admins = await update.message.chat.get_administrators()
+
+    # 检查用户是否是群主或管理员
+    if not any(admin.user.id == user_id for admin in admins):
+        await update.message.reply_text("只有群主或管理员可以查看操作人！")
+        return
+
+    # 获取操作人列表
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # 查询所有操作人
+    cursor.execute("SELECT username FROM operators")
+    result = cursor.fetchall()
+
+    if not result:
+        await update.message.reply_text("当前没有设置操作人。")
+        conn.close()
+        return
+
+    # 构建操作人列表
+    operators_list = "\n".join([f"@{row[0]}" for row in result])
+
+    # 发送操作人列表
+    await update.message.reply_text(f"当前操作人列表:\n{operators_list}")
+
+    conn.close()
