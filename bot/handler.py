@@ -14,9 +14,6 @@ def setup_handlers(application):
     # 注册 /show_exchange_rate 命令
     application.add_handler(CommandHandler("show_exchange_rate", show_exchange_rate))
 
-    # 注册 /set_exchange_rate 命令
-    application.add_handler(CommandHandler("set_exchange_rate", set_exchange_rate))
-
     # 注册 /show_daily_bill 命令（显示账单）
     application.add_handler(CommandHandler("show_daily_bill", show_daily_bill))
 
