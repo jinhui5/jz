@@ -169,13 +169,31 @@ async def show_exchange_rate(update: Update, context: CallbackContext) -> None:
 def get_exchange_rate():
     url = "https://api.coingecko.com/api/v3/simple/price?ids=tether&vs_currencies=cny"
     try:
+        # 发送请求并检查响应
         response = requests.get(url)
-        data = response.json()
-        if "tether" not in data or "cny" not in data["tether"]:
+        
+        # 检查响应状态码是否为 200（OK）
+        if response.status_code != 200:
+            print(f"API 请求失败，状态码：{response.status_code}")
             return None
+        
+        data = response.json()
+        
+        # 检查返回的数据是否包含 'tether' 和 'cny' 字段
+        if "tether" not in data or "cny" not in data["tether"]:
+            print("API 返回的数据格式不正确或缺少 'tether' 和 'cny' 字段")
+            return None
+        
+        # 返回汇率数据
         return data["tether"]["cny"]
+    
+    except requests.exceptions.RequestException as e:
+        # 捕获请求相关的异常
+        print(f"API 请求异常：{e}")
+        return None
     except Exception as e:
-        print(f"Error fetching exchange rate: {e}")
+        # 捕获其他类型的异常
+        print(f"发生错误：{e}")
         return None
 
 # 获取并显示最近的入款或支出记录（包括北京时间格式）
