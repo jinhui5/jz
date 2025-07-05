@@ -12,4 +12,3 @@ def get_db_connection():
         port=url.port
     )
     return conn
-
