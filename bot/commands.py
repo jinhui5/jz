@@ -164,41 +164,66 @@ async def show_exchange_rate(update: Update, context: CallbackContext) -> None:
         await update.message.reply_text("获取汇率时发生错误，请稍后再试。")
         print(f"Error: {e}")
 
-# 获取实时汇率并计算金额的异步函数
-async def set_exchange_rate(update: Update, context: CallbackContext) -> None:
-    # 获取用户输入的金额
-    try:
-        amount = float(context.args[0])  # 获取用户输入的金额
-    except (IndexError, ValueError):
-        await update.message.reply_text("请提供有效的金额，例如: `/set_exchange_rate 100`")
-        return
-
-    # CoinGecko API URL
+# 获取实时汇率的函数
+def get_real_time_exchange_rate():
     url = "https://api.coingecko.com/api/v3/simple/price?ids=tether&vs_currencies=cny"
-    
-    # 获取汇率数据
     try:
         response = requests.get(url)
         data = response.json()
-
-        # 检查 API 返回的数据
+        
+        # 获取汇率，如果没有返回汇率则返回 None
         if "tether" not in data or "cny" not in data["tether"]:
-            await update.message.reply_text("无法获取汇率数据，请稍后再试。")
+            return None
+
+        # 获取汇率
+        return data["tether"]["cny"]
+
+    except Exception as e:
+        print(f"Error fetching exchange rate: {e}")
+        return None
+
+# 设置汇率的异步函数
+async def set_exchange_rate(update: Update, context: CallbackContext) -> None:
+    # 如果用户输入了汇率，则设置该汇率
+    if len(context.args) == 1:
+        try:
+            rate = float(context.args[0])
+        except ValueError:
+            await update.message.reply_text("请输入有效的汇率，例如: `/设置汇率 6.5`")
             return
 
-        # 获取 USDT 对 CNY 的汇率
-        exchange_rate = data["tether"]["cny"]
+        # 将汇率存入数据库
+        conn = get_db_connection()
+        cursor = conn.cursor()
 
-        # 计算兑换金额
-        converted_amount = amount * exchange_rate
+        # 删除旧的汇率记录并插入新的汇率
+        cursor.execute("DELETE FROM exchange_rate")
+        cursor.execute("INSERT INTO exchange_rate (rate, updated_at) VALUES (%s, CURRENT_TIMESTAMP)", (rate,))
+        conn.commit()
 
-        # 返回计算结果
-        await update.message.reply_text(f"当前 USDT 对 CNY 的实时汇率是: {exchange_rate} CNY\n"
-                                       f"{amount} USDT = {converted_amount} CNY")
-    
-    except Exception as e:
-        await update.message.reply_text("获取汇率时发生错误，请稍后再试。")
-        print(f"Error: {e}")
+        await update.message.reply_text(f"汇率已成功设置为 {rate:.2f}（USDT 对 CNY）。")
+
+        conn.close()
+    else:
+        # 如果没有输入汇率，获取实时汇率
+        exchange_rate = get_real_time_exchange_rate()
+
+        if not exchange_rate:
+            await update.message.reply_text("无法获取实时汇率，请稍后再试。")
+            return
+
+        # 将实时汇率存入数据库
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # 删除旧的汇率记录并插入新的汇率
+        cursor.execute("DELETE FROM exchange_rate")
+        cursor.execute("INSERT INTO exchange_rate (rate, updated_at) VALUES (%s, CURRENT_TIMESTAMP)", (exchange_rate,))
+        conn.commit()
+
+        await update.message.reply_text(f"实时汇率已成功设置为 {exchange_rate:.2f}（USDT 对 CNY）。")
+
+        conn.close()
 
 # 入款人民币的异步函数
 async def deposit_rmb(update: Update, context: CallbackContext) -> None:
@@ -217,30 +242,27 @@ async def deposit_rmb(update: Update, context: CallbackContext) -> None:
         await update.message.reply_text("请输入有效的金额，例如: `+100c`。")
         return
 
-    # 获取实时汇率
-    exchange_rate = await show_exchange_rate(update, context)
-    if exchange_rate is None:
-        await update.message.reply_text("无法获取实时汇率，请稍后再试。")
-        return
-
-    # 计算换算后的 USDT 金额
-    usdt_amount = amount / exchange_rate  # CNY 转换为 USDT
-    
-    # 将入款金额存入数据库
-    user_id = update.message.from_user.id
+    # 获取设置的汇率
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    # 插入入款记录
+    cursor.execute("SELECT rate FROM exchange_rate ORDER BY updated_at DESC LIMIT 1")
+    rate = cursor.fetchone()[0] if cursor.rowcount > 0 else None
+
+    if not rate:
+        await update.message.reply_text("当前没有设置汇率，请先设置汇率。")
+        return
+
+    # CNY -> USDT 转换
+    usdt_amount = amount / rate
+
+    # 存储入款数据
+    user_id = update.message.from_user.id
     cursor.execute("INSERT INTO deposits (user_id, amount) VALUES (%s, %s)", (user_id, amount))
-    
-    # 同时将入款记录到每日账单
-    cursor.execute("INSERT INTO daily_bill (user_id, amount, currency, transaction_type, transaction_date) "
-                   "VALUES (%s, %s, 'CNY', 'deposit', CURRENT_DATE)", (user_id, amount))
     conn.commit()
 
-    # 返回信息给用户
-    await update.message.reply_text(f"+{amount} CNY / 实时汇率 = {usdt_amount:.2f} USDT")
+    # 反馈给用户
+    await update.message.reply_text(f"成功入款 {amount} CNY / 汇率 {rate:.2f} = {usdt_amount:.2f} USDT")
 
     conn.close()
 
@@ -261,30 +283,27 @@ async def spend_rmb(update: Update, context: CallbackContext) -> None:
         await update.message.reply_text("请输入有效的金额，例如: `-100c`。")
         return
 
-    # 获取实时汇率
-    exchange_rate = await show_exchange_rate(update, context)
-    if exchange_rate is None:
-        await update.message.reply_text("无法获取实时汇率，请稍后再试。")
-        return
-
-    # 计算换算后的 USDT 金额
-    usdt_amount = amount / exchange_rate  # CNY 转换为 USDT
-    
-    # 将支出金额存入数据库
-    user_id = update.message.from_user.id
+    # 获取设置的汇率
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    # 插入支出记录
-    cursor.execute("INSERT INTO expenses (user_id, amount) VALUES (%s, %s)", (user_id, amount))
+    cursor.execute("SELECT rate FROM exchange_rate ORDER BY updated_at DESC LIMIT 1")
+    rate = cursor.fetchone()[0] if cursor.rowcount > 0 else None
 
-    # 同时将支出记录到每日账单
-    cursor.execute("INSERT INTO daily_bill (user_id, amount, currency, transaction_type, transaction_date) "
-                   "VALUES (%s, %s, 'CNY', 'spend', CURRENT_DATE)", (user_id, amount))
+    if not rate:
+        await update.message.reply_text("当前没有设置汇率，请先设置汇率。")
+        return
+
+    # CNY -> USDT 转换
+    usdt_amount = amount / rate
+
+    # 存储支出数据
+    user_id = update.message.from_user.id
+    cursor.execute("INSERT INTO expenses (user_id, amount) VALUES (%s, %s)", (user_id, amount))
     conn.commit()
 
-    # 返回信息给用户
-    await update.message.reply_text(f"-{amount} CNY / 实时汇率 = {usdt_amount:.2f} USDT")
+    # 反馈给用户
+    await update.message.reply_text(f"成功支出 {amount} CNY / 汇率 {rate:.2f} = {usdt_amount:.2f} USDT")
 
     conn.close()
 
@@ -305,30 +324,27 @@ async def deposit_usdt(update: Update, context: CallbackContext) -> None:
         await update.message.reply_text("请输入有效的金额，例如: `+100u`。")
         return
 
-     # 获取实时汇率
-    exchange_rate = await show_exchange_rate(update, context)
-    if exchange_rate is None:
-        await update.message.reply_text("无法获取实时汇率，请稍后再试。")
-        return
-
-    # 计算换算后的 CNY 金额
-    cny_amount = amount * exchange_rate  # USDT 转换为 CNY
-    
-    # 将入款金额存入数据库
-    user_id = update.message.from_user.id
+     # 获取设置的汇率
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    # 插入入款记录
-    cursor.execute("INSERT INTO usdt_deposits (user_id, amount) VALUES (%s, %s)", (user_id, amount))
+    cursor.execute("SELECT rate FROM exchange_rate ORDER BY updated_at DESC LIMIT 1")
+    rate = cursor.fetchone()[0] if cursor.rowcount > 0 else None
 
-    # 同时将入款记录到每日账单
-    cursor.execute("INSERT INTO daily_bill (user_id, amount, currency, transaction_type, transaction_date) "
-                   "VALUES (%s, %s, 'USDT', 'deposit', CURRENT_DATE)", (user_id, amount))
+    if not rate:
+        await update.message.reply_text("当前没有设置汇率，请先设置汇率。")
+        return
+
+    # USDT -> CNY 转换
+    cny_amount = amount * rate
+
+    # 存储入款数据
+    user_id = update.message.from_user.id
+    cursor.execute("INSERT INTO usdt_deposits (user_id, amount) VALUES (%s, %s)", (user_id, amount))
     conn.commit()
 
-    # 返回信息给用户
-    await update.message.reply_text(f"+{amount} USDT * 实时汇率 = {cny_amount:.2f} CNY")
+    # 反馈给用户
+    await update.message.reply_text(f"成功入款 {amount} USDT * 汇率 {rate:.2f} = {cny_amount:.2f} CNY")
 
     conn.close()
 
@@ -349,30 +365,27 @@ async def spend_usdt(update: Update, context: CallbackContext) -> None:
         await update.message.reply_text("请输入有效的金额，例如: `-100u`。")
         return
 
-    # 获取实时汇率
-    exchange_rate = await show_exchange_rate(update, context)
-    if exchange_rate is None:
-        await update.message.reply_text("无法获取实时汇率，请稍后再试。")
-        return
-
-    # 计算换算后的 CNY 金额
-    cny_amount = amount * exchange_rate  # USDT 转换为 CNY
-    
-    # 将支出金额存入数据库
-    user_id = update.message.from_user.id
+    # 获取设置的汇率
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    # 插入支出记录
-    cursor.execute("INSERT INTO usdt_expenses (user_id, amount) VALUES (%s, %s)", (user_id, amount))
+    cursor.execute("SELECT rate FROM exchange_rate ORDER BY updated_at DESC LIMIT 1")
+    rate = cursor.fetchone()[0] if cursor.rowcount > 0 else None
 
-    # 同时将支出记录到每日账单
-    cursor.execute("INSERT INTO daily_bill (user_id, amount, currency, transaction_type, transaction_date) "
-                   "VALUES (%s, %s, 'USDT', 'spend', CURRENT_DATE)", (user_id, amount))
+    if not rate:
+        await update.message.reply_text("当前没有设置汇率，请先设置汇率。")
+        return
+
+    # USDT -> CNY 转换
+    cny_amount = amount * rate
+
+    # 存储支出数据
+    user_id = update.message.from_user.id
+    cursor.execute("INSERT INTO usdt_expenses (user_id, amount) VALUES (%s, %s)", (user_id, amount))
     conn.commit()
 
-    # 返回信息给用户
-    await update.message.reply_text(f"-{amount} USDT * 实时汇率 = {cny_amount:.2f} CNY")
+    # 反馈给用户
+    await update.message.reply_text(f"成功支出 {amount} USDT * 汇率 {rate:.2f} = {cny_amount:.2f} CNY")
 
     conn.close()
 
