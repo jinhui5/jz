@@ -398,3 +398,34 @@ async def show_daily_bill(update: Update, context: CallbackContext) -> None:
     await update.message.reply_text(bill_message, parse_mode="Markdown")
 
     conn.close()
+
+# 删除今日账单的异步函数
+async def delete_daily_bill(update: Update, context: CallbackContext) -> None:
+    user_id = update.message.from_user.id
+
+    # 获取当前日期（北京时间）
+    beijing_tz = timezone("Asia/Shanghai")
+    today = datetime.now(beijing_tz).date()  # 获取北京时间的今天日期
+
+    # 使用 await 获取群管理员列表
+    admins = await update.message.chat.get_administrators()
+
+    # 检查用户是否是群主或管理员
+    if not any(admin.user.id == user_id for admin in admins):
+        await update.message.reply_text("只有群主或管理员可以删除账单！")
+        return
+
+    # 从数据库中删除今日账单记录
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # 删除今天的 CNY 入款、支出记录
+    cursor.execute("DELETE FROM daily_bill WHERE transaction_date = %s", (today,))
+
+    # 提交删除操作
+    conn.commit()
+
+    # 反馈给用户
+    await update.message.reply_text(f"成功删除了 {today} 的账单！")
+
+    conn.close()
