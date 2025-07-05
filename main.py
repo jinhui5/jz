@@ -1,5 +1,5 @@
-import logging
-from telegram.ext import Updater
+from telegram import Update
+from telegram.ext import Application, CommandHandler
 from bot.handler import setup_handlers
 from bot.config import TELEGRAM_TOKEN
 
@@ -9,15 +9,14 @@ def main():
                         level=logging.INFO)
     logger = logging.getLogger()
 
-    # 设置 Updater
-    updater = Updater(TELEGRAM_TOKEN, use_context=True)
+    # 创建 Application 实例，传入 Telegram Token
+    application = Application.builder().token(TELEGRAM_TOKEN).build()
 
     # 设置命令处理器
-    setup_handlers(updater.dispatcher)
+    setup_handlers(application)
 
     # 启动机器人
-    updater.start_polling()
-    updater.idle()
+    application.run_polling()
 
 if __name__ == '__main__':
     main()
