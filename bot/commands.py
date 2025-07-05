@@ -161,3 +161,39 @@ async def show_exchange_rate(update: Update, context: CallbackContext) -> None:
     except Exception as e:
         await update.message.reply_text("获取汇率时发生错误，请稍后再试。")
         print(f"Error: {e}")
+
+# 获取实时汇率并计算金额的异步函数
+async def set_exchange_rate(update: Update, context: CallbackContext) -> None:
+    # 获取用户输入的金额
+    try:
+        amount = float(context.args[0])  # 获取用户输入的金额
+    except (IndexError, ValueError):
+        await update.message.reply_text("请提供有效的金额，例如: `/set_exchange_rate 100`")
+        return
+
+    # CoinGecko API URL
+    url = "https://api.coingecko.com/api/v3/simple/price?ids=tether&vs_currencies=cny"
+    
+    # 获取汇率数据
+    try:
+        response = requests.get(url)
+        data = response.json()
+
+        # 检查 API 返回的数据
+        if "tether" not in data or "cny" not in data["tether"]:
+            await update.message.reply_text("无法获取汇率数据，请稍后再试。")
+            return
+
+        # 获取 USDT 对 CNY 的汇率
+        exchange_rate = data["tether"]["cny"]
+
+        # 计算兑换金额
+        converted_amount = amount * exchange_rate
+
+        # 返回计算结果
+        await update.message.reply_text(f"当前 USDT 对 CNY 的实时汇率是: {exchange_rate} CNY\n"
+                                       f"{amount} USDT = {converted_amount} CNY")
+    
+    except Exception as e:
+        await update.message.reply_text("获取汇率时发生错误，请稍后再试。")
+        print(f"Error: {e}")
