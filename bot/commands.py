@@ -35,7 +35,7 @@ async def set_operator(update: Update, context: CallbackContext) -> None:
     result = cursor.fetchone()
 
     if result:
-        await update.message.reply_text(f"用户 @{target_username} 已经是操作人！")
+        await update.message.reply_text(f"用户 {target_username} 已经是操作人！")
         return
 
     # 查找目标用户的 ID
@@ -46,14 +46,14 @@ async def set_operator(update: Update, context: CallbackContext) -> None:
             break
 
     if target_user_id is None:
-        await update.message.reply_text(f"没有找到用户 @{target_username}。请检查用户名是否正确。")
+        await update.message.reply_text(f"没有找到用户 {target_username}。请检查用户名是否正确。")
         return
 
     # 将该用户设置为操作人
     cursor.execute("INSERT INTO operators (user_id, username, is_admin) VALUES (%s, %s, %s)", 
                    (target_user_id, target_username, False))
     conn.commit()
-    await update.message.reply_text(f"已将 @{target_username} 设置为操作人！")
+    await update.message.reply_text(f"已将 {target_username} 设置为操作人！")
 
     conn.close()
 
@@ -87,7 +87,7 @@ async def remove_operator(update: Update, context: CallbackContext) -> None:
     result = cursor.fetchone()
 
     if result is None:
-        await update.message.reply_text(f"没有找到用户 @{target_username} 作为操作人。")
+        await update.message.reply_text(f"没有找到用户 {target_username} 作为操作人。")
         return
 
     target_user_id = result[0]
@@ -96,6 +96,6 @@ async def remove_operator(update: Update, context: CallbackContext) -> None:
     cursor.execute("DELETE FROM operators WHERE user_id = %s", (target_user_id,))
     conn.commit()
 
-    await update.message.reply_text(f"已删除 @{target_username} 作为操作人！")
+    await update.message.reply_text(f"已删除 {target_username} 作为操作人！")
 
     conn.close()
