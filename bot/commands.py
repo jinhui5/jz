@@ -16,7 +16,8 @@ async def set_operator(update: Update, context: CallbackContext) -> None:
         return
 
     # 检查命令是否有有效的 @username
-    if len(context.args) < 1:
+    # 确保 context.args 不是 None
+    if not context.args or len(context.args) < 1:
         await update.message.reply_text("请提供要设置的操作人用户名，例如: `/set_operator @username`")
         return
 
