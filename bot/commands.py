@@ -1,31 +1,28 @@
 from telegram import Update
-from telegram.ext import CallbackContext, ConversationHandler
+from telegram.ext import CallbackContext
 from .db import get_db_connection
 
-# 状态定义
-GET_USERNAME = 1  # 用于存储对话状态，询问用户名
-
 # 设置操作员的异步函数
-async def start_set_operator(update: Update, context: CallbackContext) -> int:
-    await update.message.reply_text("请提供要设置的操作人用户名，例如: `/set_operator @username` 或直接输入用户名。")
-    return GET_USERNAME
-
-async def set_operator(update: Update, context: CallbackContext) -> int:
+async def set_operator(update: Update, context: CallbackContext) -> None:
     user_id = update.message.from_user.id
     username = update.message.from_user.username
 
-    # 获取用户输入的目标用户名
-    target_username = update.message.text.strip()
-
-    # 获取群管理员列表
+    # 使用 await 获取群管理员列表
     admins = await update.message.chat.get_administrators()
 
     # 检查用户是否是群主或管理员
     if not any(admin.user.id == user_id for admin in admins):
         await update.message.reply_text("只有群主或管理员可以设置操作人！")
-        return ConversationHandler.END
+        return
 
-    # 查找目标用户的 ID
+    # 检查用户输入是否提供目标用户名
+    if len(context.args) < 1:
+        await update.message.reply_text("请提供要设置的操作人用户名，例如: `@username`。")
+        return
+
+    target_username = context.args[0]  # 获取用户名
+
+    # 获取用户 ID
     target_user_id = None
     for admin in admins:
         if admin.user.username == target_username.lstrip('@'):
@@ -34,7 +31,7 @@ async def set_operator(update: Update, context: CallbackContext) -> int:
 
     if target_user_id is None:
         await update.message.reply_text(f"没有找到用户 @{target_username}。请检查用户名是否正确。")
-        return ConversationHandler.END
+        return
 
     # 使用 get_member 获取指定用户的成员信息
     target_user = await update.message.chat.get_member(target_user_id)
@@ -56,4 +53,3 @@ async def set_operator(update: Update, context: CallbackContext) -> int:
         await update.message.reply_text(f"已将 @{target_user.user.username} 设置为操作员！")
 
     conn.close()
-    return ConversationHandler.END
