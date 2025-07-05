@@ -25,9 +25,9 @@ async def set_operator(update: Update, context: CallbackContext) -> None:
 
     # 获取用户 ID
     target_user_id = None
-    async for member in update.message.chat.get_administrators():
-        if member.user.username == target_username.lstrip('@'):
-            target_user_id = member.user.id
+    for admin in admins:
+        if admin.user.username == target_username.lstrip('@'):
+            target_user_id = admin.user.id
             break
 
     if target_user_id is None:
