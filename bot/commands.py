@@ -321,3 +321,49 @@ async def spend_usdt(update: Update, context: CallbackContext) -> None:
     await update.message.reply_text(f"成功支出 {amount} USDT！")
 
     conn.close()
+
+# 获取并显示今日账单的异步函数
+async def show_daily_bill(update: Update, context: CallbackContext) -> None:
+    user_id = update.message.from_user.id
+
+    # 设置时区为北京时间
+    beijing_tz = timezone("Asia/Shanghai")
+    today = datetime.now(beijing_tz).date()  # 获取北京时间的今天日期
+
+    # 从数据库中获取今天的入款和支出数据
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # 获取今日 CNY 入款
+    cursor.execute("SELECT SUM(amount) FROM daily_bill WHERE currency = 'CNY' AND transaction_type = 'deposit' AND transaction_date = %s", (today,))
+    cny_deposit = cursor.fetchone()[0] or 0
+
+    # 获取今日 CNY 支出
+    cursor.execute("SELECT SUM(amount) FROM daily_bill WHERE currency = 'CNY' AND transaction_type = 'spend' AND transaction_date = %s", (today,))
+    cny_spend = cursor.fetchone()[0] or 0
+
+    # 获取今日 USDT 入款
+    cursor.execute("SELECT SUM(amount) FROM daily_bill WHERE currency = 'USDT' AND transaction_type = 'deposit' AND transaction_date = %s", (today,))
+    usdt_deposit = cursor.fetchone()[0] or 0
+
+    # 获取今日 USDT 支出
+    cursor.execute("SELECT SUM(amount) FROM daily_bill WHERE currency = 'USDT' AND transaction_type = 'spend' AND transaction_date = %s", (today,))
+    usdt_spend = cursor.fetchone()[0] or 0
+
+    # 计算总入款和支出
+    total_cny_deposit = cny_deposit
+    total_cny_spend = cny_spend
+    total_usdt_deposit = usdt_deposit
+    total_usdt_spend = usdt_spend
+
+    # 构建账单信息
+    bill_message = f"今日账单（北京时间）：\n\n"
+    bill_message += f"**CNY 入款**: {total_cny_deposit} CNY\n"
+    bill_message += f"**CNY 支出**: {total_cny_spend} CNY\n"
+    bill_message += f"**USDT 入款**: {total_usdt_deposit} USDT\n"
+    bill_message += f"**USDT 支出**: {total_usdt_spend} USDT"
+
+    # 发送账单信息
+    await update.message.reply_text(bill_message)
+
+    conn.close()
