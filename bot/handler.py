@@ -1,5 +1,5 @@
 from telegram.ext import CommandHandler, MessageHandler, filters
-from .commands import set_operator, remove_operator, show_operators, show_exchange_rate
+from .commands import set_operator, remove_operator, show_operators, show_exchange_rate, set_exchange_rate
 
 def setup_handlers(application):
     # 注册 /set_operator 命令
@@ -13,6 +13,9 @@ def setup_handlers(application):
 
     # 注册 /show_exchange_rate 命令
     application.add_handler(CommandHandler("show_exchange_rate", show_exchange_rate))
+
+    # 注册 /set_exchange_rate 命令
+    application.add_handler(CommandHandler("set_exchange_rate", set_exchange_rate))
     
     # 注册 "设置操作人" 文本输入
     application.add_handler(MessageHandler(filters.TEXT & filters.Regex(r'设置操作人'), set_operator))
@@ -25,3 +28,7 @@ def setup_handlers(application):
 
     # 注册 "显示实时汇率" 文本输入
     application.add_handler(MessageHandler(filters.TEXT & filters.Regex(r'显示实时汇率'), show_exchange_rate))
+
+    # 注册 "设置实时汇率" 文本输入
+    application.add_handler(MessageHandler(filters.TEXT & filters.Regex(r'设置实时汇率'), set_exchange_rate))
+
