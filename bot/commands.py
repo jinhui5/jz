@@ -22,13 +22,9 @@ async def set_operator(update: Update, context: CallbackContext) -> None:
         return
 
     target_username = context.args[0]  # 获取用户名
-    target_user = None
 
-    # 查找目标用户
-    async for member in update.message.chat.get_members():
-        if member.user.username == target_username.lstrip('@'):
-            target_user = member.user
-            break
+    # 使用 get_member 获取指定用户的成员信息
+    target_user = await update.message.chat.get_member(target_username.lstrip('@'))
 
     if not target_user:
         await update.message.reply_text(f"没有找到用户 @{target_username}。请检查用户名是否正确。")
