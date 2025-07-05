@@ -217,6 +217,15 @@ async def deposit_rmb(update: Update, context: CallbackContext) -> None:
         await update.message.reply_text("请输入有效的金额，例如: `+100c`。")
         return
 
+    # 获取实时汇率
+    exchange_rate = await show_exchange_rate(update, context)
+    if exchange_rate is None:
+        await update.message.reply_text("无法获取实时汇率，请稍后再试。")
+        return
+
+    # 计算换算后的 USDT 金额
+    usdt_amount = amount / exchange_rate  # CNY 转换为 USDT
+    
     # 将入款金额存入数据库
     user_id = update.message.from_user.id
     conn = get_db_connection()
@@ -230,8 +239,8 @@ async def deposit_rmb(update: Update, context: CallbackContext) -> None:
                    "VALUES (%s, %s, 'CNY', 'deposit', CURRENT_DATE)", (user_id, amount))
     conn.commit()
 
-    # 反馈给用户
-    await update.message.reply_text(f"成功入款 {amount} CNY！")
+    # 返回信息给用户
+    await update.message.reply_text(f"+{amount} CNY / 实时汇率 = {usdt_amount:.2f} USDT")
 
     conn.close()
 
@@ -252,6 +261,15 @@ async def spend_rmb(update: Update, context: CallbackContext) -> None:
         await update.message.reply_text("请输入有效的金额，例如: `-100c`。")
         return
 
+    # 获取实时汇率
+    exchange_rate = await show_exchange_rate(update, context)
+    if exchange_rate is None:
+        await update.message.reply_text("无法获取实时汇率，请稍后再试。")
+        return
+
+    # 计算换算后的 USDT 金额
+    usdt_amount = amount / exchange_rate  # CNY 转换为 USDT
+    
     # 将支出金额存入数据库
     user_id = update.message.from_user.id
     conn = get_db_connection()
@@ -265,8 +283,8 @@ async def spend_rmb(update: Update, context: CallbackContext) -> None:
                    "VALUES (%s, %s, 'CNY', 'spend', CURRENT_DATE)", (user_id, amount))
     conn.commit()
 
-    # 反馈给用户
-    await update.message.reply_text(f"成功支出 {amount} CNY！")
+    # 返回信息给用户
+    await update.message.reply_text(f"-{amount} CNY / 实时汇率 = {usdt_amount:.2f} USDT")
 
     conn.close()
 
@@ -287,6 +305,15 @@ async def deposit_usdt(update: Update, context: CallbackContext) -> None:
         await update.message.reply_text("请输入有效的金额，例如: `+100u`。")
         return
 
+     # 获取实时汇率
+    exchange_rate = await show_exchange_rate(update, context)
+    if exchange_rate is None:
+        await update.message.reply_text("无法获取实时汇率，请稍后再试。")
+        return
+
+    # 计算换算后的 CNY 金额
+    cny_amount = amount * exchange_rate  # USDT 转换为 CNY
+    
     # 将入款金额存入数据库
     user_id = update.message.from_user.id
     conn = get_db_connection()
@@ -300,8 +327,8 @@ async def deposit_usdt(update: Update, context: CallbackContext) -> None:
                    "VALUES (%s, %s, 'USDT', 'deposit', CURRENT_DATE)", (user_id, amount))
     conn.commit()
 
-    # 反馈给用户
-    await update.message.reply_text(f"成功入款 {amount} USDT！")
+    # 返回信息给用户
+    await update.message.reply_text(f"+{amount} USDT * 实时汇率 = {cny_amount:.2f} CNY")
 
     conn.close()
 
@@ -322,6 +349,15 @@ async def spend_usdt(update: Update, context: CallbackContext) -> None:
         await update.message.reply_text("请输入有效的金额，例如: `-100u`。")
         return
 
+    # 获取实时汇率
+    exchange_rate = await show_exchange_rate(update, context)
+    if exchange_rate is None:
+        await update.message.reply_text("无法获取实时汇率，请稍后再试。")
+        return
+
+    # 计算换算后的 CNY 金额
+    cny_amount = amount * exchange_rate  # USDT 转换为 CNY
+    
     # 将支出金额存入数据库
     user_id = update.message.from_user.id
     conn = get_db_connection()
@@ -335,8 +371,8 @@ async def spend_usdt(update: Update, context: CallbackContext) -> None:
                    "VALUES (%s, %s, 'USDT', 'spend', CURRENT_DATE)", (user_id, amount))
     conn.commit()
 
-    # 反馈给用户
-    await update.message.reply_text(f"成功支出 {amount} USDT！")
+    # 返回信息给用户
+    await update.message.reply_text(f"-{amount} USDT * 实时汇率 = {cny_amount:.2f} CNY")
 
     conn.close()
 
