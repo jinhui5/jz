@@ -178,7 +178,7 @@ def get_exchange_rate():
         print(f"Error fetching exchange rate: {e}")
         return None
 
-# 获取并显示最近三条入款或支出记录
+# 获取并显示最近的入款或支出记录（包括北京时间格式）
 def get_recent_records(user_id, currency, transaction_type):
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -202,9 +202,12 @@ def format_records(records, currency, transaction_type):
         return f"没有找到最近的{currency} {transaction_type}记录。"
     
     formatted = ""
+    beijing_tz = pytz.timezone("Asia/Shanghai")  # 设置北京时间时区
     for record in records:
         amount, transaction_date = record
-        # 只显示时间到小时和分钟
+        # 转换时间为北京时间
+        transaction_date = transaction_date.astimezone(beijing_tz)
+        # 格式化时间为"小时:分钟"
         time = transaction_date.strftime("%H:%M")
         formatted += f"{time} {transaction_type} {amount:.2f} {currency}\n"
     
