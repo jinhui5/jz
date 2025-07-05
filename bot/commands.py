@@ -9,7 +9,7 @@ async def set_operator(update: Update, context: CallbackContext) -> None:
     username = update.message.from_user.username
 
     # 使用 await 获取群管理员列表
-    admins = await update.message.chat.get_chat_administrators()
+    admins = await update.message.chat.get_administrators()
 
     # 检查用户是否是群主或管理员
     if not any(admin.user.id == user_id for admin in admins):
