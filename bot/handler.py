@@ -45,7 +45,7 @@ def setup_handlers(application):
     application.add_handler(MessageHandler(filters.TEXT & filters.Regex(r'显示操作人'), show_operators))
 
     # 注册 "显示实时汇率" 文本输入
-    application.add_handler(MessageHandler(filters.TEXT & filters.Regex(r'显示实时汇率'), show_exchange_rate))
+    application.add_handler(MessageHandler(filters.TEXT & filters.Regex(r'显示汇率'), show_exchange_rate))
 
     # 注册 "设置实时汇率" 文本输入
     application.add_handler(MessageHandler(filters.TEXT & filters.Regex(r'设置实时汇率'), set_exchange_rate))
