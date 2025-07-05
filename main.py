@@ -1,3 +1,4 @@
+import logging
 from telegram import Update
 from telegram.ext import Application, CommandHandler
 from bot.handler import setup_handlers
