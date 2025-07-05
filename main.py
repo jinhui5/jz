@@ -1,6 +1,5 @@
 import logging
-from telegram import Update
-from telegram.ext import Application, CommandHandler
+from telegram.ext import Application
 from bot.handler import setup_handlers
 from bot.config import TELEGRAM_TOKEN
 
