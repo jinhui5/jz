@@ -217,17 +217,21 @@ async def deposit_rmb(update: Update, context: CallbackContext) -> None:
         await update.message.reply_text("请输入有效的金额，例如: `+100c`。")
         return
 
-    # 将入款金额存入数据库（假设每个用户都有唯一的 ID）
+    # 将入款金额存入数据库
     user_id = update.message.from_user.id
     conn = get_db_connection()
     cursor = conn.cursor()
 
     # 插入入款记录
     cursor.execute("INSERT INTO deposits (user_id, amount) VALUES (%s, %s)", (user_id, amount))
+    
+    # 同时将入款记录到每日账单
+    cursor.execute("INSERT INTO daily_bill (user_id, amount, currency, transaction_type, transaction_date) "
+                   "VALUES (%s, %s, 'CNY', 'deposit', CURRENT_DATE)", (user_id, amount))
     conn.commit()
 
     # 反馈给用户
-    await update.message.reply_text(f"成功入款 {amount} 人民币！")
+    await update.message.reply_text(f"成功入款 {amount} CNY！")
 
     conn.close()
 
@@ -248,17 +252,21 @@ async def spend_rmb(update: Update, context: CallbackContext) -> None:
         await update.message.reply_text("请输入有效的金额，例如: `-100c`。")
         return
 
-    # 将支出金额存入数据库（假设每个用户都有唯一的 ID）
+    # 将支出金额存入数据库
     user_id = update.message.from_user.id
     conn = get_db_connection()
     cursor = conn.cursor()
 
     # 插入支出记录
     cursor.execute("INSERT INTO expenses (user_id, amount) VALUES (%s, %s)", (user_id, amount))
+
+    # 同时将支出记录到每日账单
+    cursor.execute("INSERT INTO daily_bill (user_id, amount, currency, transaction_type, transaction_date) "
+                   "VALUES (%s, %s, 'CNY', 'spend', CURRENT_DATE)", (user_id, amount))
     conn.commit()
 
     # 反馈给用户
-    await update.message.reply_text(f"成功支出 {amount} 人民币！")
+    await update.message.reply_text(f"成功支出 {amount} CNY！")
 
     conn.close()
 
@@ -279,13 +287,17 @@ async def deposit_usdt(update: Update, context: CallbackContext) -> None:
         await update.message.reply_text("请输入有效的金额，例如: `+100u`。")
         return
 
-    # 将入款金额存入数据库（假设每个用户都有唯一的 ID）
+    # 将入款金额存入数据库
     user_id = update.message.from_user.id
     conn = get_db_connection()
     cursor = conn.cursor()
 
     # 插入入款记录
     cursor.execute("INSERT INTO usdt_deposits (user_id, amount) VALUES (%s, %s)", (user_id, amount))
+
+    # 同时将入款记录到每日账单
+    cursor.execute("INSERT INTO daily_bill (user_id, amount, currency, transaction_type, transaction_date) "
+                   "VALUES (%s, %s, 'USDT', 'deposit', CURRENT_DATE)", (user_id, amount))
     conn.commit()
 
     # 反馈给用户
@@ -310,13 +322,17 @@ async def spend_usdt(update: Update, context: CallbackContext) -> None:
         await update.message.reply_text("请输入有效的金额，例如: `-100u`。")
         return
 
-    # 将支出金额存入数据库（假设每个用户都有唯一的 ID）
+    # 将支出金额存入数据库
     user_id = update.message.from_user.id
     conn = get_db_connection()
     cursor = conn.cursor()
 
     # 插入支出记录
     cursor.execute("INSERT INTO usdt_expenses (user_id, amount) VALUES (%s, %s)", (user_id, amount))
+
+    # 同时将支出记录到每日账单
+    cursor.execute("INSERT INTO daily_bill (user_id, amount, currency, transaction_type, transaction_date) "
+                   "VALUES (%s, %s, 'USDT', 'spend', CURRENT_DATE)", (user_id, amount))
     conn.commit()
 
     # 反馈给用户
