@@ -129,7 +129,7 @@ async def show_operators(update: Update, context: CallbackContext) -> None:
         return
 
     # 构建操作人列表
-    operators_list = "\n".join([f"@{row[0]}" for row in result])
+    operators_list = "\n".join([f"{row[0]}" for row in result])
 
     # 发送操作人列表
     await update.message.reply_text(f"当前操作人列表:\n{operators_list}")
