@@ -178,19 +178,47 @@ def get_exchange_rate():
         print(f"Error fetching exchange rate: {e}")
         return None
 
-# 入款人民币的异步函数
-async def deposit_rmb(update: Update, context: CallbackContext) -> None:
-    # 获取用户输入的文本
-    text = update.message.text.strip()
+# 获取并显示最近三条入款或支出记录
+def get_recent_records(user_id, currency, transaction_type):
+    conn = get_db_connection()
+    cursor = conn.cursor()
 
-    # 确保输入格式是 +数字c
+    # 查询最近三条记录
+    cursor.execute(f"""
+        SELECT amount, transaction_date 
+        FROM daily_bill
+        WHERE user_id = %s AND currency = %s AND transaction_type = %s
+        ORDER BY transaction_date DESC LIMIT 3
+    """, (user_id, currency, transaction_type))
+
+    records = cursor.fetchall()
+    conn.close()
+
+    return records
+
+# 格式化交易记录
+def format_records(records, currency, transaction_type):
+    if not records:
+        return f"没有找到最近的{currency} {transaction_type}记录。"
+    
+    formatted = ""
+    for record in records:
+        amount, transaction_date = record
+        # 只显示时间到小时和分钟
+        time = transaction_date.strftime("%H:%M")
+        formatted += f"{time} {transaction_type} {amount:.2f} {currency}\n"
+    
+    return formatted
+
+# CNY入款记录通知
+async def deposit_rmb(update: Update, context: CallbackContext) -> None:
+    text = update.message.text.strip()
     if not text.startswith('+') or not text.endswith('c'):
         await update.message.reply_text("请输入有效的入款命令，例如: `+100c`。")
         return
 
-    # 提取金额（去掉 '+' 和 'c'）
     try:
-        amount = float(text[1:-1])  # 提取金额并转换为浮动类型
+        amount = float(text[1:-1])  # 提取金额
     except ValueError:
         await update.message.reply_text("请输入有效的金额，例如: `+100c`。")
         return
@@ -217,24 +245,24 @@ async def deposit_rmb(update: Update, context: CallbackContext) -> None:
                    "VALUES (%s, %s, 'CNY', 'deposit', CURRENT_DATE)", (user_id, amount))
     conn.commit()
 
+    # 获取最近三条入款记录
+    recent_records = get_recent_records(user_id, 'CNY', 'deposit')
+    formatted_records = format_records(recent_records, 'CNY', '入款')
+
     # 发送通知消息
-    await update.message.reply_text(f"{current_time} +{amount} CNY / {exchange_rate:.2f} = +{usdt_amount:.2f} USDT")
+    await update.message.reply_text(f"{current_time} +{amount} CNY / {exchange_rate:.2f} = +{usdt_amount:.2f} USDT\n\n最近三条入款记录：\n{formatted_records}")
 
     conn.close()
 
-# 支出人民币的异步函数
+# CNY支出记录通知
 async def spend_rmb(update: Update, context: CallbackContext) -> None:
-    # 获取用户输入的文本
     text = update.message.text.strip()
-
-    # 确保输入格式是 -数字c
     if not text.startswith('-') or not text.endswith('c'):
         await update.message.reply_text("请输入有效的支出命令，例如: `-100c`。")
         return
 
-    # 提取金额（去掉 '-' 和 'c'）
     try:
-        amount = float(text[1:-1])  # 提取金额并转换为浮动类型
+        amount = float(text[1:-1])  # 提取金额
     except ValueError:
         await update.message.reply_text("请输入有效的金额，例如: `-100c`。")
         return
@@ -261,29 +289,29 @@ async def spend_rmb(update: Update, context: CallbackContext) -> None:
                    "VALUES (%s, %s, 'CNY', 'spend', CURRENT_DATE)", (user_id, amount))
     conn.commit()
 
+    # 获取最近三条支出记录
+    recent_records = get_recent_records(user_id, 'CNY', 'spend')
+    formatted_records = format_records(recent_records, 'CNY', '支出')
+
     # 发送通知消息
-    await update.message.reply_text(f"{current_time} -{amount} CNY / {exchange_rate:.2f} = -{usdt_amount:.2f} USDT")
+    await update.message.reply_text(f"{current_time} -{amount} CNY / {exchange_rate:.2f} = -{usdt_amount:.2f} USDT\n\n最近三条支出记录：\n{formatted_records}")
 
-    conn.close
+    conn.close()
 
-# 入款 USDT 的异步函数
+# USDT入款记录通知
 async def deposit_usdt(update: Update, context: CallbackContext) -> None:
-    # 获取用户输入的文本
     text = update.message.text.strip()
-
-    # 确保输入格式是 +数字u
     if not text.startswith('+') or not text.endswith('u'):
         await update.message.reply_text("请输入有效的入款命令，例如: `+100u`。")
         return
 
-    # 提取金额（去掉 '+' 和 'u'）
     try:
-        amount = float(text[1:-1])  # 提取金额并转换为浮动类型
+        amount = float(text[1:-1])  # 提取金额
     except ValueError:
         await update.message.reply_text("请输入有效的金额，例如: `+100u`。")
         return
 
-   # 获取汇率
+    # 获取汇率
     exchange_rate = get_exchange_rate()
     if not exchange_rate:
         await update.message.reply_text("无法获取汇率数据，请稍后再试。")
@@ -305,29 +333,29 @@ async def deposit_usdt(update: Update, context: CallbackContext) -> None:
                    "VALUES (%s, %s, 'USDT', 'deposit', CURRENT_DATE)", (user_id, amount))
     conn.commit()
 
+    # 获取最近三条入款记录
+    recent_records = get_recent_records(user_id, 'USDT', 'deposit')
+    formatted_records = format_records(recent_records, 'USDT', '入款')
+
     # 发送通知消息
-    await update.message.reply_text(f"{current_time} +{amount} USDT * {exchange_rate:.2f} = +{cny_amount:.2f} CNY")
+    await update.message.reply_text(f"{current_time} +{amount} USDT * {exchange_rate:.2f} = +{cny_amount:.2f} CNY\n\n最近三条入款记录：\n{formatted_records}")
 
     conn.close()
 
-# 支出 USDT 的异步函数
+# USDT支出记录通知
 async def spend_usdt(update: Update, context: CallbackContext) -> None:
-    # 获取用户输入的文本
     text = update.message.text.strip()
-
-    # 确保输入格式是 -数字u
     if not text.startswith('-') or not text.endswith('u'):
         await update.message.reply_text("请输入有效的支出命令，例如: `-100u`。")
         return
 
-    # 提取金额（去掉 '-' 和 'u'）
     try:
-        amount = float(text[1:-1])  # 提取金额并转换为浮动类型
+        amount = float(text[1:-1])  # 提取金额
     except ValueError:
         await update.message.reply_text("请输入有效的金额，例如: `-100u`。")
         return
 
-     # 获取汇率
+    # 获取汇率
     exchange_rate = get_exchange_rate()
     if not exchange_rate:
         await update.message.reply_text("无法获取汇率数据，请稍后再试。")
@@ -349,10 +377,15 @@ async def spend_usdt(update: Update, context: CallbackContext) -> None:
                    "VALUES (%s, %s, 'USDT', 'spend', CURRENT_DATE)", (user_id, amount))
     conn.commit()
 
+    # 获取最近三条支出记录
+    recent_records = get_recent_records(user_id, 'USDT', 'spend')
+    formatted_records = format_records(recent_records, 'USDT', '支出')
+
     # 发送通知消息
-    await update.message.reply_text(f"{current_time} -{amount} USDT * {exchange_rate:.2f} = -{cny_amount:.2f} CNY")
+    await update.message.reply_text(f"{current_time} -{amount} USDT * {exchange_rate:.2f} = -{cny_amount:.2f} CNY\n\n最近三条支出记录：\n{formatted_records}")
 
     conn.close()
+
 # 获取并显示今日账单的异步函数
 async def show_daily_bill(update: Update, context: CallbackContext) -> None:
     user_id = update.message.from_user.id
