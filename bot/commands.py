@@ -1,6 +1,6 @@
 from telegram import Update
 from telegram.ext import CallbackContext
-from telegram.constants import ParseMode  # 正确的导入方式
+from telegram.constants import ParseMode  # 仍然是正确的导入方式
 from .db import get_db_connection
 
 # 设置操作员的异步函数
@@ -8,8 +8,11 @@ async def set_operator(update: Update, context: CallbackContext) -> None:
     user_id = update.message.from_user.id
     username = update.message.from_user.username
 
+    # 使用 await 获取成员信息，确保是异步操作
+    member = await update.message.chat.get_member(user_id)
+
     # 检查用户是否是群主或管理员
-    if not (update.message.chat.get_member(user_id).status in ['administrator', 'creator']):
+    if member.status not in ['administrator', 'creator']:
         await update.message.reply_text("只有群主或管理员可以设置操作人！")
         return
 
@@ -22,7 +25,7 @@ async def set_operator(update: Update, context: CallbackContext) -> None:
     target_user = None
 
     # 查找目标用户
-    for member in update.message.chat.get_members():
+    async for member in update.message.chat.get_members():
         if member.user.username == target_username.lstrip('@'):
             target_user = member.user
             break
