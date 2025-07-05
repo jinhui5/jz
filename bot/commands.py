@@ -348,6 +348,9 @@ async def show_daily_bill(update: Update, context: CallbackContext) -> None:
     beijing_tz = timezone("Asia/Shanghai")
     today = datetime.now(beijing_tz).date()  # 获取北京时间的今天日期
 
+    # 格式化日期为 "YYYY-MM-DD"
+    formatted_date = today.strftime("%Y-%m-%d")
+
     # 从数据库中获取今天的入款和支出数据
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -374,14 +377,20 @@ async def show_daily_bill(update: Update, context: CallbackContext) -> None:
     total_usdt_deposit = usdt_deposit
     total_usdt_spend = usdt_spend
 
-    # 构建账单信息
-    bill_message = f"今日账单（北京时间）：\n\n"
-    bill_message += f"**CNY 入款**: {total_cny_deposit} CNY\n"
-    bill_message += f"**CNY 支出**: {total_cny_spend} CNY\n"
-    bill_message += f"**USDT 入款**: {total_usdt_deposit} USDT\n"
-    bill_message += f"**USDT 支出**: {total_usdt_spend} USDT"
+    # 构建账单信息，使用 Markdown 格式
+    bill_message = f"*今日账单（北京时间） - {formatted_date}:*\n\n"
+    
+    # CNY 入款和支出
+    bill_message += f"CNY 入款: `{total_cny_deposit:.2f} CNY`\n"
+    bill_message += f"CNY 支出: `-{total_cny_spend:.2f} CNY`\n"
+    bill_message += f"CNY 总余额: `{total_cny_deposit - total_cny_spend:.2f} CNY`\n\n"
+
+    # USDT 入款和支出
+    bill_message += f"USDT 入款: `{total_usdt_deposit:.2f} USDT`\n"
+    bill_message += f"USDT 支出: `-{total_usdt_spend:.2f} USDT`\n"
+    bill_message += f"USDT 总余额: `{total_usdt_deposit - total_usdt_spend:.2f} USDT`\n"
 
     # 发送账单信息
-    await update.message.reply_text(bill_message)
+    await update.message.reply_text(bill_message, parse_mode="Markdown")
 
     conn.close()
