@@ -70,12 +70,15 @@ async def remove_operator(update: Update, context: CallbackContext) -> None:
         await update.message.reply_text("只有群主或管理员可以删除操作人！")
         return
 
-    # 检查命令是否有有效的 @username
-    if len(context.args) < 1:
-        await update.message.reply_text("请提供要删除的操作人用户名，例如: `/remove_operator @username`。")
+    # 获取用户输入的文本
+    text = update.message.text.strip()
+
+    # 确保用户输入有效的 @username
+    if len(text.split()) < 2:
+        await update.message.reply_text("请提供要删除的操作人用户名，例如: `/remove_operator @username` 或直接输入用户名。")
         return
 
-    target_username = context.args[0]  # 获取用户名
+    target_username = text.split()[1]  # 提取目标用户名
 
     # 获取用户 ID
     target_user_id = None
